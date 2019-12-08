@@ -4,9 +4,10 @@ if [ "$WORK_DIR" = "" -o "$FF_ROOT" = "" ]; then
     exit 1
 fi
 
-NDK="$ANDROID_NDK"
-NDK_HOST=darwin-x86_64
-NDK_API=24
+HOST=darwin-x86_64
+API=24
+TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt/$HOST/
+CROSS_PREFIX=$TOOLCHAIN/bin/aarch64-linux-android-
 
 function configure_ffmpeg() {
 
@@ -41,15 +42,17 @@ function build_ffmpeg() {
 
     prefix=$build_path/output
 
-    cc=$NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi24-clang
-    echo "cc=$cc"
+    CC=$TOOLCHAIN/bin/aarch64-linux-android$API-clang
+    CXX=$TOOLCHAIN/bin/aarch64-linux-android$API-clang++
+    echo "CC=$CC"
+    echo "CXX=$CXX"
 
     ./configure --prefix=$prefix \
         --enable-gpl \
         --enable-nonfree \
         --enable-version3 \
         --enable-static \
-        --disable-shared \
+        --enable-shared \
         --disable-runtime-cpudetect \
         --disable-programs \
         --disable-doc \
@@ -57,38 +60,42 @@ function build_ffmpeg() {
         --enable-cross-compile \
         --target-os=android \
         --arch=$arch \
-        --cc=$cc \
-        --cross-prefix=$NDK/toolchains/$toolchain_arch-linux-$android- \
-        --sysroot=$NDK/sysroot \
+        --cc=$CC \
+        --cxx=$CXX
+        --sysroot=$ANDROID_NDK/sysroot \
         --enable-neon \
         --enable-asm \
         --enable-pic \
         --enable-thumb \
         --enable-mediacodec \
-        # --enable-jni
+        --enable-jni \
+        --enable-nonfree \
     # --extra-cflags="-fpic -mfpu=neon -mcpu=cortex-a8 -mfloat-abi=softfp -marm -march=armv7-a"
+     make -j4 && make install
 
-    # make -j4 && make install
 
-        $NDK/toolchains/$toolchain_arch-linux-$android-ld \
-        -rpath-link=$NDK/sysroot/usr/lib \
-        -L$NDK/sysroot/usr/lib \
-        -L$prefix/usr/lib \
-        -soname libffmpeg.so \
-        -shared -nostdlib -Bsymbolic --whole-archive --no-undefined \
-        -o $prefix/libffmpeg.so \
-        libavcodec/libavcodec.a \
-        libavfilter/libavfilter.a \
-        libswresample/libswresample.a \
-        libavformat/libavformat.a \
-        libavutil/libavutil.a \
-        libswscale/libswscale.a \
-        libpostproc/libpostproc.a \
-        -lc -lm -lz -ldl -llog \
-        --dynamic-linker=/system/bin/linker \
-        $toolchain/lib/$toolchain_arch-linux-$android/4.9.x/libgcc.a
+        # LD=$TOOLCHAIN/bin/aarch64-linux-android-ld
+
+        # $LD \
+        # -rpath-link=$ANDROID_NDK/sysroot/usr/lib \
+        # -L$ANDROID_NDK/sysroot/usr/lib \
+        # -L$prefix/usr/lib \
+        # -soname .libffmpeg.so \
+        # -shared -nostdlib -Bsymbolic --whole-archive --no-undefined \
+        # -o $prefix/libffmpeg.so \
+        # libavcodec/libavcodec.a \
+        # libavfilter/libavfilter.a \
+        # libswresample/libswresample.a \
+        # libavformat/libavformat.a \
+        # libavutil/libavutil.a \
+        # libswscale/libswscale.a \
+        # libpostproc/libpostproc.a \
+        # -lc -lm -lz -ldl -llog \
+        # --dynamic-linker=/system/bin/linker \
+        # $toolchain/lib/$toolchain_arch-linux-$android/4.9.x/libgcc.a
 
 }
 
-build_ffmpeg armv7a
-# build_ffmpeg armv64
+
+# build_ffmpeg armv7a
+build_ffmpeg armv64
