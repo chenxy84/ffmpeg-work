@@ -4,7 +4,7 @@ if [ "$WORK_DIR" = "" -o "$FF_ROOT" = "" ]; then
     exit 1
 fi
 
-NDK="$HOME/Workspace/SDK/android-ndk-r20"
+NDK="$ANDROID_NDK"
 NDK_HOST=darwin-x86_64
 NDK_API=24
 
@@ -21,6 +21,7 @@ function build_ffmpeg() {
     build_path="$WORK_DIR/build/android/$1"
     rm -rf $build_path
     mkdir -p $build_path
+    echo "ffmpeg path: $build_path/ffmpeg"
     cp -a $FF_ROOT $build_path/ffmpeg
     pushd $build_path/ffmpeg
 
@@ -38,16 +39,9 @@ function build_ffmpeg() {
         android='android'
     fi
 
-    toolchain=$build_path/toolchain
-
-    python $HOME/Workspace/SDK/android-ndk-r20/build/tools/make_standalone_toolchain.py \
-        --api $NDK_API \
-        --arch $arch \
-        --install-dir $toolchain
-
     prefix=$build_path/output
 
-    cc=$toolchain/bin/$cpu-linux-$android$NDK_API-clang
+    cc=$NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi24-clang
     echo "cc=$cc"
 
     ./configure --prefix=$prefix \
@@ -64,21 +58,21 @@ function build_ffmpeg() {
         --target-os=android \
         --arch=$arch \
         --cc=$cc \
-        --cross-prefix=$toolchain/bin/$toolchain_arch-linux-$android- \
-        --sysroot=$toolchain/sysroot \
+        --cross-prefix=$NDK/toolchains/$toolchain_arch-linux-$android- \
+        --sysroot=$NDK/sysroot \
         --enable-neon \
         --enable-asm \
         --enable-pic \
         --enable-thumb \
         --enable-mediacodec \
-        --enable-jni
+        # --enable-jni
     # --extra-cflags="-fpic -mfpu=neon -mcpu=cortex-a8 -mfloat-abi=softfp -marm -march=armv7-a"
 
     # make -j4 && make install
 
-    $toolchain/bin/$toolchain_arch-linux-$android-ld \
-        -rpath-link=$toolchain/sysroot/usr/lib \
-        -L$toolchain/sysroot/usr/lib \
+        $NDK/toolchains/$toolchain_arch-linux-$android-ld \
+        -rpath-link=$NDK/sysroot/usr/lib \
+        -L$NDK/sysroot/usr/lib \
         -L$prefix/usr/lib \
         -soname libffmpeg.so \
         -shared -nostdlib -Bsymbolic --whole-archive --no-undefined \
