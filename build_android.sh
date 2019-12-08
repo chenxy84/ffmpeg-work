@@ -52,7 +52,7 @@ function build_ffmpeg() {
         --enable-nonfree \
         --enable-version3 \
         --enable-static \
-        --enable-shared \
+        --disable-shared \
         --disable-runtime-cpudetect \
         --disable-programs \
         --disable-doc \
@@ -61,38 +61,62 @@ function build_ffmpeg() {
         --target-os=android \
         --arch=$arch \
         --cc=$CC \
-        --cxx=$CXX
-        --sysroot=$ANDROID_NDK/sysroot \
+        --cxx=$CXX \
         --enable-neon \
         --enable-asm \
         --enable-pic \
         --enable-thumb \
+        --enable-nonfree \
+        --disable-avdevice \
+        --disable-postproc \
+        --disable-avfilter \
+        --disable-everything \
         --enable-mediacodec \
         --enable-jni \
-        --enable-nonfree \
-    # --extra-cflags="-fpic -mfpu=neon -mcpu=cortex-a8 -mfloat-abi=softfp -marm -march=armv7-a"
+        --enable-decoder=hevc_mediacodec --enable-demuxer=hevc \
+        --enable-decoder=h264_mediacodec --enable-demuxer=h264 \
+    
      make -j4 && make install
 
 
-        # LD=$TOOLCHAIN/bin/aarch64-linux-android-ld
+     FF_MODULE_DIRS="compat libavcodec libavfilter libavformat libavutil libswresample libswscale"
+     FF_ASSEMBLER_SUB_DIRS=
 
-        # $LD \
-        # -rpath-link=$ANDROID_NDK/sysroot/usr/lib \
-        # -L$ANDROID_NDK/sysroot/usr/lib \
-        # -L$prefix/usr/lib \
-        # -soname .libffmpeg.so \
-        # -shared -nostdlib -Bsymbolic --whole-archive --no-undefined \
-        # -o $prefix/libffmpeg.so \
-        # libavcodec/libavcodec.a \
-        # libavfilter/libavfilter.a \
-        # libswresample/libswresample.a \
-        # libavformat/libavformat.a \
-        # libavutil/libavutil.a \
-        # libswscale/libswscale.a \
-        # libpostproc/libpostproc.a \
-        # -lc -lm -lz -ldl -llog \
-        # --dynamic-linker=/system/bin/linker \
-        # $toolchain/lib/$toolchain_arch-linux-$android/4.9.x/libgcc.a
+     FF_ASSEMBLER_SUB_DIRS="aarch64 neon"
+
+
+FF_C_OBJ_FILES=
+FF_ASM_OBJ_FILES=
+for MODULE_DIR in $FF_MODULE_DIRS
+do
+    C_OBJ_FILES="$build_path/ffmpeg/$MODULE_DIR/*.o"
+    echo $C_OBJ_FILES
+    if ls $C_OBJ_FILES 1> /dev/null 2>&1; then
+        echo "link $build_path/ffmpeg/$MODULE_DIR/*.o"
+        FF_C_OBJ_FILES="$FF_C_OBJ_FILES $C_OBJ_FILES"
+    fi
+
+    for ASM_SUB_DIR in $FF_ASSEMBLER_SUB_DIRS
+    do
+        ASM_OBJ_FILES="$build_path/ffmpeg/$MODULE_DIR/$ASM_SUB_DIR/*.o"
+        if ls $ASM_OBJ_FILES 1> /dev/null 2>&1; then
+            echo "link $build_path/ffmpeg/$MODULE_DIR/$ASM_SUB_DIR/*.o"
+            FF_ASM_OBJ_FILES="$FF_ASM_OBJ_FILES $ASM_OBJ_FILES"
+        fi
+    done
+done
+
+
+FF_ANDROID_PLATFORM=android-24
+FF_SYSROOT_ARCH="arch-arm64"
+FF_SYSROOT=$ANDROID_NDK/platforms/$FF_ANDROID_PLATFORM/$FF_SYSROOT_ARCH
+
+$CC -lm -lz -shared --sysroot=$FF_SYSROOT -Wl,--no-undefined -Wl,-z,noexecstack $FF_EXTRA_LDFLAGS \
+    -Wl,-soname,libijkffmpeg.so \
+    $FF_C_OBJ_FILES \
+    $FF_ASM_OBJ_FILES \
+    $FF_DEP_LIBS \
+    -o $prefix/libijkffmpeg.so
 
 }
 
