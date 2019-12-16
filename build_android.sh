@@ -1,4 +1,29 @@
 #!/bin/sh
+
+# more info
+# https://developer.android.com/ndk/guides/other_build_systems
+
+# HOST_TAG
+#macOS darwin-x86_64
+#Linux   linux-x86_64
+#32-bit Windows  windows
+#64-bit Windows  windows-x86_64
+
+# $ export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/$HOST_TAG
+# $ export AR=$TOOLCHAIN/bin/aarch64-linux-android-ar
+# $ export AS=$TOOLCHAIN/bin/aarch64-linux-android-as
+# $ export CC=$TOOLCHAIN/bin/aarch64-linux-android21-clang
+# $ export CXX=$TOOLCHAIN/bin/aarch64-linux-android21-clang++
+# $ export LD=$TOOLCHAIN/bin/aarch64-linux-android-ld
+# $ export RANLIB=$TOOLCHAIN/bin/aarch64-linux-android-ranlib
+# $ export STRIP=$TOOLCHAIN/bin/aarch64-linux-android-strip
+
+# ABI
+# armeabi-v7a armv7a-linux-androideabi
+# arm64-v8a   aarch64-linux-android
+# x86 i686-linux-android
+# x86-64  x86_64-linux-android
+
 if [ "$WORK_DIR" = "" -o "$FF_ROOT" = "" ]; then
     echo "Please use build.sh"
     exit 1
@@ -6,17 +31,18 @@ fi
 
 HOST=darwin-x86_64
 API=24
-TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt/$HOST/
-CROSS_PREFIX=$TOOLCHAIN/bin/aarch64-linux-android-
+TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt/$HOST
+ABI=
 
-function configure_ffmpeg() {
 
-    abi='armeabi'
-    cpu='arm'
-    arch='arm'
-    android='androideabi'
+export FF_CFG_COMMON_MODULES=
+. modules.sh
+echo "FF_CFG_COMMON_MODULES $FF_CFG_COMMON_MODULES"
 
-}
+FF_CFG_ARCH=
+FF_MODULE_DIRS="compat libavcodec libavfilter libavformat libavutil libswresample libswscale"
+FF_ASSEMBLER_SUB_DIRS=
+
 
 function build_ffmpeg() {
     build_path="$WORK_DIR/build/android/$1"
@@ -25,25 +51,23 @@ function build_ffmpeg() {
     echo "ffmpeg path: $build_path/ffmpeg"
     cp -a $FF_ROOT $build_path/ffmpeg
     pushd $build_path/ffmpeg
-
-    if [ $1 = "armv7a" ]; then
-        abi='armeabi'
-        cpu='armv7a'
-        arch='arm'
-        toolchain_arch="arm"
-        android='androideabi'
-    else
-        abi='arm64-v8a'
-        cpu='aarch64'
-        arch='arm64'
-        toolchain_arch="aarch64"
-        android='android'
-    fi
-
     prefix=$build_path/output
 
-    CC=$TOOLCHAIN/bin/aarch64-linux-android$API-clang
-    CXX=$TOOLCHAIN/bin/aarch64-linux-android$API-clang++
+    if [ $1 = "armv7a" ]; then
+        ABI=armv7a-linux-androideabi
+        FF_CFG_ARCH=arm
+        FF_ASSEMBLER_SUB_DIRS="arm"
+    elif [ $1 = "arm64" ]; then
+        ABI=aarch64-linux-android
+        FF_CFG_ARCH=aarch64
+        FF_ASSEMBLER_SUB_DIRS="aarch64 neon"
+    else 
+        echo "Unknown arch $1"
+        exit
+    fi
+
+    CC=$TOOLCHAIN/bin/$ABI$API-clang
+    CXX=$TOOLCHAIN/bin/$ABI$API-clang++
     echo "CC=$CC"
     echo "CXX=$CXX"
 
@@ -56,34 +80,30 @@ function build_ffmpeg() {
         --disable-runtime-cpudetect \
         --disable-programs \
         --disable-doc \
-        --disable-avdevice \
         --enable-cross-compile \
         --target-os=android \
-        --arch=$arch \
+        --arch=$FF_CFG_ARCH \
         --cc=$CC \
         --cxx=$CXX \
         --enable-neon \
         --enable-asm \
         --enable-pic \
         --enable-thumb \
-        --enable-nonfree \
         --disable-avdevice \
         --disable-postproc \
         --disable-avfilter \
         --disable-everything \
         --enable-mediacodec \
         --enable-jni \
-        --enable-decoder=hevc_mediacodec --enable-demuxer=hevc \
-        --enable-decoder=h264_mediacodec --enable-demuxer=h264 \
+        $FF_CFG_COMMON_MODULES \
+        --enable-decoder=hevc_mediacodec \
+        --enable-decoder=h264_mediacodec \
+        \
+        
     
-     make -j4 && make install
-
-
-     FF_MODULE_DIRS="compat libavcodec libavfilter libavformat libavutil libswresample libswscale"
-     FF_ASSEMBLER_SUB_DIRS=
-
-     FF_ASSEMBLER_SUB_DIRS="aarch64 neon"
-
+     make clean
+     make -j8
+     make install
 
 FF_C_OBJ_FILES=
 FF_ASM_OBJ_FILES=
@@ -106,20 +126,13 @@ do
     done
 done
 
-
-FF_ANDROID_PLATFORM=android-24
-FF_SYSROOT_ARCH="arch-arm64"
-FF_SYSROOT=$ANDROID_NDK/platforms/$FF_ANDROID_PLATFORM/$FF_SYSROOT_ARCH
-
-$CC -lm -lz -shared --sysroot=$FF_SYSROOT -Wl,--no-undefined -Wl,-z,noexecstack $FF_EXTRA_LDFLAGS \
+$CC -lm -lz -shared -target $ABI$API -Wl,--no-undefined -Wl,-z,noexecstack $FF_EXTRA_LDFLAGS \
     -Wl,-soname,libijkffmpeg.so \
     $FF_C_OBJ_FILES \
     $FF_ASM_OBJ_FILES \
     $FF_DEP_LIBS \
     -o $prefix/libijkffmpeg.so
-
 }
 
-
-# build_ffmpeg armv7a
-build_ffmpeg armv64
+build_ffmpeg armv7a
+build_ffmpeg arm64
