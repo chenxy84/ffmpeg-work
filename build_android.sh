@@ -91,7 +91,6 @@ function build_ffmpeg() {
         --enable-thumb \
         --disable-avdevice \
         --disable-postproc \
-        --disable-avfilter \
         --disable-everything \
         --enable-mediacodec \
         --enable-jni \

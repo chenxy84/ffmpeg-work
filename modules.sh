@@ -5,6 +5,8 @@ export FF_CFG_COMMON_MODULES="$FF_CFG_COMMON_MODULES --enable-decoder=mp3"
 export FF_CFG_COMMON_MODULES="$FF_CFG_COMMON_MODULES --enable-decoder=h264"
 export FF_CFG_COMMON_MODULES="$FF_CFG_COMMON_MODULES --enable-decoder=hevc"
 
+export FF_CFG_COMMON_MODULES="$FF_CFG_COMMON_MODULES --enable-filter=aresample"
+
 export FF_CFG_COMMON_MODULES="$FF_CFG_COMMON_MODULES --enable-demuxer=aac"
 export FF_CFG_COMMON_MODULES="$FF_CFG_COMMON_MODULES --enable-demuxer=mp3"
 export FF_CFG_COMMON_MODULES="$FF_CFG_COMMON_MODULES --enable-demuxer=h264"
