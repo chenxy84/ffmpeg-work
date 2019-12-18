@@ -5,6 +5,6 @@ export FF_ROOT=$WORK_DIR/ffmpeg
 export XCODE=""
 export EMSDK="$HOME/Workspace/SDK/emsdk"
 
-
-sh $WORK_DIR/build_android.sh $*
+sh $WORK_DIR/build_ios.sh $*
+# sh $WORK_DIR/build_android.sh $*
 # sh $WORK_DIR/build_macos.sh $*

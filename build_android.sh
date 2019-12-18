@@ -56,7 +56,7 @@ function build_ffmpeg() {
     if [ $1 = "armv7a" ]; then
         ABI=armv7a-linux-androideabi
         FF_CFG_ARCH=arm
-        FF_ASSEMBLER_SUB_DIRS="arm"
+        FF_ASSEMBLER_SUB_DIRS="arm neon"
     elif [ $1 = "arm64" ]; then
         ABI=aarch64-linux-android
         FF_CFG_ARCH=aarch64
