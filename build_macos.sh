@@ -28,12 +28,15 @@ function build_ffmpeg() {
         --disable-everything \
         $FF_CFG_COMMON_MODULES \
         --enable-sdl2 \
+        --enable-debug \
+        --disable-optimizations \
         \
     
-     make clean
-     make -j8
-     make install
+    make clean
+    make -j8
+    make install
 
+    popd
 }
 
 build_ffmpeg

@@ -4,6 +4,10 @@ if [ "$WORK_DIR" = "" -o "$FF_ROOT" = "" ]; then
     exit 1
 fi
 
+export FF_CFG_COMMON_MODULES=
+. modules.sh
+echo "FF_CFG_COMMON_MODULES $FF_CFG_COMMON_MODULES"
+
 function build_ffmpeg() {
     build_path="$WORK_DIR/build/ios"
     rm -rf $build_path
@@ -20,7 +24,7 @@ function build_ffmpeg() {
     CFLAGS="$CFLAGS -mios-version-min=$DEPLOYMENT_TARGET -fembed-bitcode"
     LDFLAGS="$CFLAGS"
     EXPORT="GASPP_FIX_XCODE5=1"
-    AS="$WORK_DIR/gas-preprocessor.pl -arch arm64 -- $CC"
+    AS="$WORK_DIR/gas-preprocessor.pl -arch aarch64 -- $CC"
     echo "CC=$CC"
     echo "AS=$AS"
 
@@ -53,6 +57,8 @@ function build_ffmpeg() {
      make clean
      make -j8 $EXPORT
      make install
+
+     popd
 }
 
 build_ffmpeg
