@@ -18,9 +18,6 @@ function build_ffmpeg() {
     prefix=$build_path/output
 
     ./configure --prefix=$prefix \
-        --enable-gpl \
-        --enable-nonfree \
-        --enable-version3 \
         --enable-static \
         --disable-shared \
         --disable-doc \

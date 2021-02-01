@@ -72,9 +72,6 @@ function build_ffmpeg() {
     echo "CXX=$CXX"
 
     ./configure --prefix=$prefix \
-        --enable-gpl \
-        --enable-nonfree \
-        --enable-version3 \
         --enable-static \
         --disable-shared \
         --disable-runtime-cpudetect \
